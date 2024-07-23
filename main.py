@@ -59,7 +59,7 @@ for i, (wopt, B, vopt, b, C, c, A, a) in enumerate(loaded_solutions):
     # v = (data - data.min()) / (data.max() - data.min())
     v = np.ones(n) * 2.0
     sequence_error = []
-    for k in range(10):
+    for k in range(10000):
         # Prediction step
         r_k = np.linalg.norm(grad_v_phi(v)) / mu
         # print('r_k:', r_k)
