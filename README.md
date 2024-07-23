@@ -19,6 +19,6 @@ GY_PDHGM is the variant PDHGM.
 
 ## Attention
 
-1. run paramater_generate.py to create new parameters
+1. run parameter_generate.py to create new parameters
 
-2. run different method 
+2. run different methods 
