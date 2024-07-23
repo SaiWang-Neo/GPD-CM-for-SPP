@@ -7,13 +7,13 @@ from scipy.optimize import minimize, root
 n, m = 10, 10
 np.random.seed(0)  # For reproducibility
 
-# 从文件中加载解及其对应的系数
+# Load solutions and their corresponding coefficients from a file
 def load_solutions_and_coefficients(filename):
     with open(filename, 'r') as f:
-        data = f.read().split('\n\n')  # 每组解之间有一个空行
+        data = f.read().split('\n\n')  # Each solution group is separated by a blank line
     solutions = []
     for block in data:
-        if block.strip():  # 忽略空块
+        if block.strip():  # Ignore empty blocks
             lines = block.split('\n')
             w = np.loadtxt(lines[1:2])
             B = np.loadtxt(lines[3:13])
@@ -26,40 +26,19 @@ def load_solutions_and_coefficients(filename):
             solutions.append((w, B, v, b, C, c, A, a))
     return solutions
 
-
-# # Generate random matrices and vectors
-# A = np.random.rand(n, n)
-# a = np.random.rand(n)
-# b = 0.2 * (np.random.rand(m) + 1)
-# C = np.random.rand(m, m)
-# u = np.random.rand(m)
-# c = C @ np.abs(np.linalg.inv(C.T @ C) @ (C.T @ u * 12) + 12 * u)
-# B = 0.2 * np.random.rand(m, n)
-
-# print(a)
-
-# Initialize variables
-# v0 = np.linalg.inv(A.T @ A) @ A.T @ a
-# w0 = np.ones(m)
-# v0 = np.ones(n)
 # Regularization parameters
 mu = 1
 sigma = 0.95
 alpha = 0.5
 
-
-
 def L(v, w):
     return np.linalg.norm(A @ v - a) ** 2 + w @ (np.exp(B @ v) - b) - np.linalg.norm(C @ w - c) ** 2
-
-
 
 def L_variable(v, w):
     return np.linalg.norm(A @ v - a) ** 2 + w @ (np.exp(B @ v) - b)
 
 def grad_v_L(v, w, v_old, r_k):
-    return 2 * A.T @ (A @ v - a) + B.T @ (np.diag(np.exp(B @ v))) @ w + r_k * (v-v_old)
-
+    return 2 * A.T @ (A @ v - a) + B.T @ (np.diag(np.exp(B @ v))) @ w + r_k * (v - v_old)
 
 def grad_v_Ltg(v, w):
     return 2 * A.T @ (A @ v - a) + B.T @ (np.diag(np.exp(B @ v))) @ w
@@ -67,14 +46,12 @@ def grad_v_Ltg(v, w):
 def grad_v_phi(v):
     return B.T @ np.diag(np.exp(B @ v))
 
-
 def grad_w_L(v, w):
     return np.exp(B @ v) - b - 2 * C.T @ (C @ w - c)
 
-
 # Main algorithm
 all_sequence = []
-# 加载解及其对应的系数
+# Load solutions and their corresponding coefficients
 loaded_solutions = load_solutions_and_coefficients('parameter.txt')
 for i, (wopt, B, vopt, b, C, c, A, a) in enumerate(loaded_solutions):
     w = np.ones(m)
@@ -82,12 +59,11 @@ for i, (wopt, B, vopt, b, C, c, A, a) in enumerate(loaded_solutions):
     # v = (data - data.min()) / (data.max() - data.min())
     v = np.ones(n) * 2.0
     sequence_error = []
-    for k in range(10000):
+    for k in range(10):
         # Prediction step
-        r_k = np.linalg.norm(grad_v_phi(v))/ mu
+        r_k = np.linalg.norm(grad_v_phi(v)) / mu
         # print('r_k:', r_k)
         # print(v)
-
 
         def grad_v_L_root(v_):
             return grad_v_L(v_, w, v, r_k)
@@ -118,7 +94,7 @@ for i, (wopt, B, vopt, b, C, c, A, a) in enumerate(loaded_solutions):
         v = eta_k1[:n]
         w = eta_k1[n:]
         if k % 10000 == 0:
-            print('Iteration:', k, 'Sample',i)
+            print('Iteration:', k, 'Sample', i)
         sequence = 0.5 * (np.linalg.norm(v - vopt) + np.linalg.norm(w - wopt))
         sequence_error.append(sequence)
     # print('finish at the random round:', i, 'finish at tau', k, f'sequence error: {sequence}')
@@ -126,61 +102,52 @@ for i, (wopt, B, vopt, b, C, c, A, a) in enumerate(loaded_solutions):
         all_sequence.append(sequence_error)
     if i == 100:
         break
-# print('index',all_sequence[1][1],all_sequence)
-        # error = 0.5 * (np.linalg.norm(v - v_tilde) + np.linalg.norm(w - w_tilde))
-log_sequences = [[math.log10(seq) for seq in sublist] for sublist in all_sequence ]
-# print('log_sequences',log_sequences)
-# 先计算所有子列表的元素和
+# print('index', all_sequence[1][1], all_sequence)
+# error = 0.5 * (np.linalg.norm(v - v_tilde) + np.linalg.norm(w - w_tilde))
+log_sequences = [[math.log10(seq) for seq in sublist] for sublist in all_sequence]
+# print('log_sequences', log_sequences)
+# First, calculate the sum of all sublist elements
 sub_sum = np.array([sum(values) for values in zip(*log_sequences)])
 
-# 计算子列表的个数
+# Calculate the number of sublists
 number_of_sublists = len(log_sequences)
 
-# 计算平均值，即总和除以子列表的个数
+# Calculate the average, i.e., the total sum divided by the number of sublists
 # average = 10 ** (sub_sum / number_of_sublists) # for ele in sub_sum / number_of_sublists
-average = [10 ** (ele/ number_of_sublists) for ele in sub_sum ]
+average = [10 ** (ele / number_of_sublists) for ele in sub_sum]
 
 print("sub sum:", sub_sum)
 print("Number of sublists:", number_of_sublists)
 print("Average:", average)
 
-
-
-with open('average_sequence_optimal.txt', 'w') as f:
+with open('average_sequence_test.txt', 'w') as f:
     f.write(str(average))
-
 
 import math
 
-
-
-#
-# # Display results
+# Display results
 # print(f'Optimized v: {v}')
 # print(f'Optimized w: {w}')
 # print(f'Number of iterations: {k}')
-#
+
 # print(f'Optimized abs(v-vopt): {np.linalg.norm(v - vopt)}')
 # print(f'Optimized abs(w-wopt): {np.linalg.norm(w - wopt)}')
 
-
-
-# # Compare with optimizer
+# Compare with optimizer
 # res = minimize(lambda x: -L(x[:n], x[n:]), np.concatenate([v0, w0]))
 # v_opt, w_opt = res.x[:n], res.x[n:]
 # print(f'Optimizer v: {v_opt}')
 # print(f'Optimizer w: {w_opt}')
 
-
-# 验证是否为鞍点
+# Verify if it is a saddle point
 def verify_saddle_point(v, w, epsilon=1e-4):
-    # 检查v是否是局部最小值
+    # Check if v is a local minimum
     v_perturbed = v + epsilon * np.random.randn(n)
     print(L(v_perturbed, w) - L(v, w))
     if L(v_perturbed, w) < L(v, w):
         return False
 
-    # 检查w是否是局部最大值
+    # Check if w is a local maximum
     w_perturbed = w + epsilon * np.random.randn(m)
     print(L(v, w_perturbed) - L(v, w))
     if L(v, w_perturbed) > L(v, w):
@@ -188,12 +155,8 @@ def verify_saddle_point(v, w, epsilon=1e-4):
 
     return True
 
-
 is_saddle_point = verify_saddle_point(v, w)
 print("Is saddle point:", is_saddle_point)
 
-
 # print(grad_w_L(vopt, wopt), grad_v_Ltg(vopt, wopt))
-
-print('gradient',np.sum(np.abs(grad_w_L(v, w))), np.sum(np.abs(grad_v_Ltg(v, w))))
-
+print('gradient', np.sum(np.abs(grad_w_L(v, w))), np.sum(np.abs(grad_v_Ltg(v, w))))
